@@ -85,7 +85,7 @@ def update_feature_matrix(lambdas, Ys, Ts, p):
     p = 1. / p
 
     tmpsum = sum([
-        lambdas[s] * Ys[s] @ Ts[s].T @ p[None, :]
+        lambdas[s] * (Ys[s] @ Ts[s].T) * p[None, :]
         for s in range(len(Ts))
     ])
     return tmpsum
@@ -150,7 +150,7 @@ def euclidean_distances(X, Y, squared=False):
     c += a2[:, None]
     c += b2[None, :]
 
-    c = torch.maximum(c, 0)
+    c = torch.clamp(c, min=0)
 
     if not squared:
         c = torch.sqrt(c)
