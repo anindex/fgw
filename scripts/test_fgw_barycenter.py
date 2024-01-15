@@ -10,7 +10,7 @@ from matplotlib import cm
 import torch
 import time
 
-from fgw.barycenter import fgw_barycenters
+from fgw.barycenter import fgw_barycenters, fgw_barycenters_BAPG
 #%% Graph functions
 
 
@@ -155,6 +155,9 @@ sizebary = 15  # we choose a barycenter with 15 nodes
 # NOTE: remember to set random seed
 A, C, log = fgw_barycenters(sizebary, Ys, Cs, ps, epsilon=0.5, warmstartT=True, seed=int(time.time()), loss_fun='kl_loss',
                             alpha=0.95, tol=1e-3, max_iter=100, solver='BAPG', log=True, verbose=True, numItermax=20)
+
+# A, C, log = fgw_barycenters_BAPG(sizebary, Ys, Cs, ps, epsilon=0.5, seed=int(time.time()), loss_fun='kl_loss',
+#                                     alpha=0.5, tol=1e-3, max_iter=100, rho=1, log=True, verbose=True)
 
 ##############################################################################
 # Plot Barycenter
