@@ -1,5 +1,3 @@
-
-#%% load libraries
 import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -11,7 +9,6 @@ import torch
 import time
 
 from fgw.barycenter import fgw_barycenters
-#%% Graph functions
 
 
 def find_thresh(C, inf=0.5, sup=3, step=10):
@@ -108,41 +105,16 @@ def graph_colors(nx_graph, vmin=0, vmax=7):
         colors.append(val_map[node])
     return colors
 
-##############################################################################
-# Generate data
-# -------------
-
-#%% circular dataset
-# We build a dataset of noisy circular graphs.
-# Noise is added on the structures by random connections and on the features by gaussian noise.
-
-
 np.random.seed(30)
 X0 = []
 for k in range(9):
     X0.append(build_noisy_circular_graph(np.random.randint(15, 25), with_noise=True, structure_noise=True, p=3))
 
-##############################################################################
-# Plot data
-# ---------
 
-#%% Plot graphs
-
-plt.figure(figsize=(8, 10))
-for i in range(len(X0)):
-    plt.subplot(3, 3, i + 1)
-    g = X0[i]
-    pos = nx.kamada_kawai_layout(g)
-    nx.draw(g, pos=pos, node_color=graph_colors(g, vmin=-1, vmax=1), with_labels=False, node_size=100)
-plt.suptitle('Dataset of noisy graphs. Color indicates the label', fontsize=20)
-plt.show()
 
 ##############################################################################
 # Barycenter computation
 # ----------------------
-
-#%% We compute the barycenter using FGW. Structure matrices are computed using the shortest_path distance in the graph
-# Features distances are the euclidean distances
 device = 'cuda'
 Cs = [shortest_path(nx.adjacency_matrix(x).todense()) for x in X0]
 Cs = [torch.from_numpy(x).double().to(device) for x in Cs]
@@ -151,24 +123,20 @@ ps = [torch.ones(len(x.nodes())).double().to(device) / len(x.nodes()) for x in X
 Ys = [np.array([v for (k, v) in nx.get_node_attributes(x, 'attr_name').items()]).reshape(-1, 1) for x in X0]
 Ys = [torch.from_numpy(x).double().to(device) for x in Ys]
 sizebary = 15  # we choose a barycenter with 15 nodes
+p = torch.ones(sizebary).double().to(device) / sizebary
+
+# require grads
+for C in Cs:
+    C.requires_grad = True
+for pt in ps:
+    pt.requires_grad = True
+for Y in Ys:
+    Y.requires_grad = True
+p.requires_grad = True
 
 # NOTE: remember to set random seed
 A, C, log = fgw_barycenters(sizebary, Ys, Cs, ps, epsilon=0.5, warmstartT=True, seed=int(time.time()), loss_fun='kl_loss',
                             alpha=0.95, tol=1e-3, max_iter=100, solver='BAPG', log=True, verbose=True, numItermax=20)
 
-##############################################################################
-# Plot Barycenter
-# -------------------------
-
-#%% Create the barycenter
-C = C.cpu().numpy()
-A = A.cpu().numpy()
-bary = nx.from_numpy_array(sp_to_adjacency(C, threshinf=0, threshsup=find_thresh(C, sup=100, step=100)[0]))
-for i, v in enumerate(A.ravel()):
-    bary.add_node(i, attr_name=v)
-
-#%%
-pos = nx.kamada_kawai_layout(bary)
-nx.draw(bary, pos=pos, node_color=graph_colors(bary, vmin=-1, vmax=1), with_labels=False)
-plt.suptitle('Barycenter', fontsize=20)
-plt.show()
+print(A)
+print(C)

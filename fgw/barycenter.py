@@ -111,8 +111,8 @@ def fgw_barycenters(
         # update barycenters
         if not fixed_features:
             Ys_temp = [y.T for y in Ys]
-            X = update_feature_matrix(lambdas, Ys_temp, T, p).T
-            Ms = [dist(X, Ys[s]) for s in range(len(Ys))]
+            Y = update_feature_matrix(lambdas, Ys_temp, T, p).T
+            Ms = [dist(Y, Ys[s]) for s in range(len(Ys))]
 
         if not fixed_structure:
             if loss_fun == 'square_loss':

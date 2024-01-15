@@ -73,7 +73,7 @@ def update_kl_loss(p, lambdas, T, Cs):
 
     # Correct order mistake in Equation 15 in [12]
     tmpsum = sum([
-        lambdas[s] * (T[s] @ torch.log(torch.maximum(Cs[s], 1e-15)) @ T[s].T) for s in range(len(T))
+        lambdas[s] * (T[s] @ torch.log(torch.clamp(Cs[s], min=1e-15)) @ T[s].T) for s in range(len(T))
     ])
 
     ppt = torch.outer(p, p)
