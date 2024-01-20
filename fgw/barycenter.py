@@ -7,7 +7,7 @@ from .utils import dist, update_feature_matrix, update_square_loss, update_kl_lo
 def fgw_barycenters(
         N, Ys, Cs, ps=None, p=None, lambdas=None, loss_fun='square_loss',
         epsilon=0.1, symmetric=True, alpha=0.5, max_iter=100, tol=1e-9,
-        solver='BAPG', stop_criterion='barycenter', warmstartT=False, verbose=False,
+        solver='PGD', stop_criterion='barycenter', warmstartT=False, verbose=False,
         log=False, init_C=None, init_Y=None, fixed_structure=False,
         fixed_features=False, seed=0, **kwargs):
     
