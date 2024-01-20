@@ -11,8 +11,11 @@ def normalize(C):
 
 # normalized
 # Cs = [normalize(C) for C in debug_dict['Cs']]  # NOTE: avoid numerical issues
-Ys = [normalize(Y) for Y in debug_dict['Ys']]  # NOTE: avoid numerical issues # TODO: check if this makes sense data-wise in your experiments
+# Ys = [normalize(Y) for Y in debug_dict['Ys']]  # NOTE: avoid numerical issues # TODO: check if this makes sense data-wise in your experiments
+Ys = normalize(debug_dict['Ys'])
 
-F_bary, C_bary = fgw_barycenters(N=debug_dict["N"], Ys=Ys, Cs=debug_dict["Cs"], ps=debug_dict["ps"], lambdas=debug_dict["lambdas"], 
+F_bary, C_bary = fgw_barycenters(N=debug_dict["N"], Ys=Ys, Cs=debug_dict["Cs"], ps=debug_dict["ps"], lambdas=debug_dict["lambdas"], warmstartT=True, symmetric=True,
                                  alpha=0.5, solver='PGD', fixed_structure=True, fixed_features=False, epsilon=0.15, p=None, loss_fun='square_loss', max_iter=30, tol=1e-2, 
-                                 numItermax=30, stopThr=1e-2, verbose=True, log=False, init_C=debug_dict["Cs"][0], init_X=None, random_state=None)
+                                 numItermax=10, stopThr=1e-2, verbose=True, log=False, init_C=debug_dict["Cs"][0], init_X=None, random_state=None)
+
+print(F_bary.min(), F_bary.max())
