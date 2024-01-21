@@ -1,8 +1,9 @@
 import warnings
 import torch
+import numpy as np
 
 
-def sinkhorn(a, b, M, reg, method='sinkhorn', numItermax=1000, stopThr=1e-9,
+def sinkhorn(a, b, M, reg, method='sinkhorn_log', numItermax=100, stopThr=1e-5,
              verbose=False, log=False, warn=True, warmstart=None, **kwargs):
 
     if method.lower() == 'sinkhorn':
@@ -526,7 +527,7 @@ def sinkhorn_epsilon_scaling(a, b, M, reg, numItermax=100, epsilon0=1e4,
 
     # print(np.min(K))
     def get_reg(n):  # exponential decreasing
-        return (epsilon0 - reg) * torch.exp(-n) + reg
+        return (epsilon0 - reg) * np.exp(-n) + reg
 
     err = 1
     for ii in range(numItermax):

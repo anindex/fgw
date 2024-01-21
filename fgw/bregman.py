@@ -8,14 +8,14 @@ from .sinkhorn import sinkhorn
 
 def fgw(
     M, C1, C2, p=None, q=None, loss_fun='square_loss', epsilon=0.1,
-    symmetric=None, alpha=0.5, G0=None, max_iter=1000, tol=1e-9,
-    solver='PGD', warmstart=False, verbose=False, log=False, **kwargs,
+    symmetric=None, alpha=0.5, G0=None, max_iter=100, tol=1e-5,
+    solver='PGD', method='sinkhorn_log', warmstart=False, verbose=False, log=False, **kwargs,
 ):
     if solver in ['PGD', 'PPA']:
         return fgw_projected(
             M, C1, C2, p=p, q=q, loss_fun=loss_fun, epsilon=epsilon,
             symmetric=symmetric, alpha=alpha, G0=G0, max_iter=max_iter,
-            tol=tol, solver=solver, warmstart=warmstart, verbose=verbose,
+            tol=tol, solver=solver, method=method, warmstart=warmstart, verbose=verbose,
             log=log, **kwargs,
         )
     elif solver == 'BAPG':
@@ -30,8 +30,8 @@ def fgw(
 
 def fgw_projected(
         M, C1, C2, p=None, q=None, loss_fun='square_loss', epsilon=0.1,
-        symmetric=None, alpha=0.5, G0=None, max_iter=1000, tol=1e-9,
-        solver='PGD', warmstart=False, verbose=False, log=False, **kwargs):
+        symmetric=None, alpha=0.5, G0=None, max_iter=100, tol=1e-5,
+        solver='PGD', method='sinkhorn_log', warmstart=False, verbose=False, log=False, **kwargs):
     if solver not in ['PGD', 'PPA']:
         raise ValueError("Unknown solver '%s'. Pick one in ['PGD', 'PPA']." % solver)
 
@@ -73,12 +73,12 @@ def fgw_projected(
             tens = tens - epsilon * torch.log(T)
 
         if warmstart:
-            T, loginn = sinkhorn(p, q, tens, epsilon, method='sinkhorn', log=True, warmstart=(mu, nu), **kwargs)
+            T, loginn = sinkhorn(p, q, tens, epsilon, method=method, log=True, warmstart=(mu, nu), **kwargs)
             mu = epsilon * torch.log(loginn['u'])
             nu = epsilon * torch.log(loginn['v'])
 
         else:
-            T = sinkhorn(p, q, tens, epsilon, method='sinkhorn', **kwargs)
+            T = sinkhorn(p, q, tens, epsilon, method=method, **kwargs)
 
         if cpt % 10 == 0:
             # we can speed up the process by checking for the error only all
