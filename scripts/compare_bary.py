@@ -35,11 +35,17 @@ F_bary2, C_bary2 = fgw_barycenters_BAPG(N=N, Ys=Ys, Cs=Cs, ps=ps, lambdas=lambda
 
 
 # compare F_bary and F_bary2
-def frob_norm(A, B):
+def normalized_frob_norm(A, B):
     return torch.norm(A - B, p='fro').item() / sum(A.shape)
+
+def mae(A, B):
+    return torch.mean(torch.abs(A - B)).item()
+
+def mape(A, B):
+    return torch.mean(torch.abs(A - B) / A).item()
 
 def mse(A, B):
     return torch.mean((A - B) ** 2).item()
 
-print('Frob norm between FGW C++ and our code: ', mse(F_bary, F_bary1))
-print('Frob norm between FGW C++ and FGWMixup: ', mse(F_bary, F_bary2))
+print('Frob norm between FGW C++ and our code: ', mape(F_bary, F_bary1))
+print('Frob norm between FGW C++ and FGWMixup: ', mape(F_bary, F_bary2))
