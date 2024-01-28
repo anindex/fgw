@@ -103,15 +103,17 @@ ps = debug_dict["ps"][0].cpu().numpy()
 # plt.show()
 
 # visualize 5 couplings
-plt.figure(figsize=(20, 10))
-
-for i in range(5):
-    plt.subplot(1, 5, i + 1)
+fig, axes = plt.subplots(figsize=(20, 10), nrows=1, ncols=5)
+i = 0
+for ax in axes.flat:
     # draw only max values
     # T_max = np.zeros_like(T[i])
     # T_max[np.arange(T[i].shape[0]), np.argmax(T[i], axis=1)] = 1
     T_max = T[i]
-    plt.imshow(T_max)
-plt.colorbar()
+    im = ax.imshow(T_max)
+    i += 1
+fig.subplots_adjust(right=0.8)
+cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+fig.colorbar(im, cax=cbar_ax)
 plt.show()
 
