@@ -78,9 +78,9 @@ Cs = [C[:max_node, :max_node] for C in debug_dict["Cs"]]
 ps = [p[:max_node] for p in debug_dict["ps"]]
 ps = [p / p.sum() for p in ps]
 
-F_bary, C_bary, log = fgw_barycenters(N=debug_dict['N'], Ys=Ys, Cs=Cs, ps=ps, lambdas=debug_dict["lambdas"], warmstartT=True, symmetric=True, method='sinkhorn_log',
-                                alpha=0.5, solver='PPA', fixed_structure=False, fixed_features=False, epsilon=0.01, p=None, loss_fun='kl_loss', max_iter=40, tol=1e-6,
-                                numItermax=40, stopThr=1e-4, verbose=True, log=True, init_C=Cs[0], init_X=None, random_state=None)
+F_bary, C_bary, log = fgw_barycenters(N=debug_dict['N'], Ys=Ys, Cs=Cs, ps=ps, lambdas=debug_dict["lambdas"], warmstartT=True, symmetric=False, method='sinkhorn_log',
+                                alpha=0.5, solver='PGD', fixed_structure=True, fixed_features=False, epsilon=0.025, p=None, loss_fun='square_loss', max_iter=30, tol=1e-6,
+                                numItermax=30, stopThr=5e-3, verbose=True, log=True, init_C=Cs[0], init_X=None, random_state=None)
 
 # F_bary, C_bary, log = ot.gromov.fgw_barycenters(N=debug_dict["N"], Ys=debug_dict["Ys"], Cs=debug_dict["Cs"], ps=debug_dict["ps"], lambdas=debug_dict["lambdas"], warmstartT=True, symmetric=True,
 #                                 alpha=0.5, fixed_structure=True, fixed_features=False, p=None, loss_fun='square_loss', max_iter=20, tol=1e-3,
@@ -108,9 +108,9 @@ plt.figure(figsize=(20, 10))
 for i in range(5):
     plt.subplot(1, 5, i + 1)
     # draw only max values
-    T_max = np.zeros_like(T[i])
-    T_max[np.arange(T[i].shape[0]), np.argmax(T[i], axis=1)] = 1
-    # T_max = T[i]
+    # T_max = np.zeros_like(T[i])
+    # T_max[np.arange(T[i].shape[0]), np.argmax(T[i], axis=1)] = 1
+    T_max = T[i]
     plt.imshow(T_max)
 plt.colorbar()
 plt.show()
