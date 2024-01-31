@@ -67,20 +67,24 @@ def draw_transp_colored_GW(G1, C1, G2, C2, p1, p2, T,
     #                     '-', lw=0.7, alpha=min(T[k1, k2] / max_Tk1 + 0.1, 1.))
     return pos1, pos2
 
-debug_dict = torch.load("./scripts/visualize_mapping/debug_barycenter_jan_28.pt")
+# debug_dict = torch.load("./scripts/visualize_mapping/debug_barycenter_jan_28.pt")
+debug_dict = torch.load("./data/cfm_log.pt")
 
-Gs = []
-for i in range(len(debug_dict["Cs"])):
-    Gs.append(networkx.Graph(debug_dict["Cs"][i].cpu().numpy()))
+# Gs = []
+# for i in range(len(debug_dict["Cs"])):
+#     Gs.append(networkx.Graph(debug_dict["Cs"][i].cpu().numpy()))
 
-max_node = 70
-Ys = [Y[:max_node, :max_node] for Y in debug_dict["Ys"]] 
-Cs = [C[:max_node, :max_node] for C in debug_dict["Cs"]]
-ps = [p[:max_node] for p in debug_dict["ps"]]
-ps = [p / p.sum() for p in ps]
+# max_node = 70
+# Ys = [Y[:max_node, :max_node] for Y in debug_dict["Ys"]] 
+# Cs = [C[:max_node, :max_node] for C in debug_dict["Cs"]]
+# ps = [p[:max_node] for p in debug_dict["ps"]]
+# ps = [p / p.sum() for p in ps]
+Ys = debug_dict["Ys"]
+Cs = debug_dict["Cs"]
+ps = debug_dict["ps"]
 
 F_bary, C_bary, log = fgw_barycenters(N=debug_dict['N'], Ys=Ys, Cs=Cs, ps=ps, lambdas=debug_dict["lambdas"], warmstartT=True, symmetric=False, method='sinkhorn_log',
-                                alpha=0.5, solver='PGD', fixed_structure=True, fixed_features=False, epsilon=0.025, p=None, loss_fun='square_loss', max_iter=30, tol=1e-6,
+                                alpha=0.5, solver='PGD', fixed_structure=True, fixed_features=False, epsilon=0.025, p=None, loss_fun='square_loss', max_iter=50, tol=1e-6,
                                 numItermax=30, stopThr=5e-3, verbose=True, log=True, init_C=Cs[0], init_X=None, random_state=None)
 
 # F_bary, C_bary, log = ot.gromov.fgw_barycenters(N=debug_dict["N"], Ys=debug_dict["Ys"], Cs=debug_dict["Cs"], ps=debug_dict["ps"], lambdas=debug_dict["lambdas"], warmstartT=True, symmetric=True,
@@ -91,13 +95,13 @@ F_bary, C_bary, log = fgw_barycenters(N=debug_dict['N'], Ys=Ys, Cs=Cs, ps=ps, la
 #                                         alpha=0.5, fixed_structure=False, fixed_features=False, epsilon=0.001, p=None, loss_fun='kl_loss', max_iter=50, tol=1e-5, rho=5,
 #                                         verbose=True, log=True, init_C=Cs[0], init_X=None, random_state=None)
 
-C_bary = C_bary.cpu().numpy()
-G_bary = networkx.Graph(C_bary)
+# C_bary = C_bary.cpu().numpy()
+# G_bary = networkx.Graph(C_bary)
 T = [t.cpu().numpy() for t in log["T"]]
-p_bary = log["p"].cpu().numpy()
-G = Gs[0]
-Cs = debug_dict["Cs"][0].cpu().numpy()
-ps = debug_dict["ps"][0].cpu().numpy()
+# p_bary = log["p"].cpu().numpy()
+# G = Gs[0]
+# Cs = debug_dict["Cs"][0].cpu().numpy()
+# ps = debug_dict["ps"][0].cpu().numpy()
 
 # visualize the mapping
 # pos1, pos2 = draw_transp_colored_GW(G, Cs, G_bary, C_bary, ps, p_bary, T[0], node_size=50)
@@ -114,7 +118,7 @@ for ax in axes.flat:
     im = ax.imshow(T_max)
     i += 1
 fig.subplots_adjust(right=0.8)
-cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+cbar_ax = fig.add_axes([0.85, 0.15, 0.01, 0.7])
 fig.colorbar(im, cax=cbar_ax)
 plt.show()
 
