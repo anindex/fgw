@@ -9,6 +9,7 @@ import networkx
 import numpy as np
 import matplotlib.pyplot as plt
 import ot
+import pygmtools as pygm
 
 
 def draw_graph(G, C, Gweights=None,
@@ -109,7 +110,7 @@ for ax in axes.flat:
     # draw only max values
     # T_max = np.zeros_like(T[i])
     # T_max[np.arange(T[i].shape[0]), np.argmax(T[i], axis=1)] = 1
-    T_max = T[i]
+    T_max = pygm.hungarian(T[i])
     im = ax.imshow(T_max)
     i += 1
 fig.subplots_adjust(right=0.8)
