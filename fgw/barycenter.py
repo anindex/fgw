@@ -308,3 +308,157 @@ def fgw_barycenters_BAPG(
         return Y, C, log_
     else:
         return Y, C
+
+
+def batch_fused_ACC_torch(M, A, B, a=None, b=None, X=None, alpha=0, epoch=200, eps=1e-5, rho=1e-1):
+    assert B.shape[0] == M.shape[0]
+    batch_size = B.shape[0]
+    a_size, b_size = A.shape[0], B.shape[1]
+    if a is None:
+        a = torch.full((batch_size, a_size), 1.0 / a_size).to(A)
+    else:
+        a = a.to(A)
+
+    if b is None:
+        b = torch.full((batch_size, b_size), 1.0 / b_size).to(B)
+    else:
+        b = b.to(B)
+
+    if X is None:
+        X = torch.einsum('bi,bj->bij', a, b)
+
+    prev_obj = 0
+    for ii in range(epoch):
+        X = X + 1e-10
+        # grad = 4 * alpha * A @ X @ B - (1 - alpha) * M
+        grad = 4 * alpha * torch.einsum('ij,bjk->bik', A, torch.einsum('bij,bjk->bik', X, B)) - (1 - alpha) * M
+        X = torch.exp(grad / rho) * X
+        # X = X * (a / (X @  torch.ones_like(b)))
+        X = X * (a / X.sum(dim=2, keepdim=True))
+        # grad = 4 * alpha * A @ X @ B - (1 - alpha) * M
+        grad = 4 * alpha * torch.einsum('ij,bjk->bik', A, torch.einsum('bij,bjk->bik', X, B)) - (1 - alpha) * M
+        X = torch.exp(grad / rho) * X
+        # X = X * (b.T / (X.T @ torch.ones_like(a)).T)
+        X = X * (b / X.sum(dim=1, keepdim=True))
+        if ii > 0 and ii % 10 == 0:
+            # objective = torch.trace(((1 - alpha) * M - 2 * alpha * A @ X @ B) @ X.T)
+            objective = torch.einsum('bij,bjk->bik', (1 - alpha) * M - 2 * alpha * torch.einsum('ij,bjk->bik', A, torch.einsum('bij,bjk->bik', X, B)), X)
+            objective = objective.sum()
+            if torch.abs((objective - prev_obj) / prev_obj) < eps:
+                # print('iter:{}, smaller than eps'.format(ii))
+                break
+            prev_obj = objective
+    return X
+
+
+def batch_fgw_barycenters_BAPG(
+    N, Ys, Cs, ps=None, p=None, lambdas=None, loss_fun='square_loss',
+    alpha=0.5, max_iter=100, tol=1e-9, rho=1., verbose=False,
+    log=False, init_C=None, init_Y=None, fixed_structure=False,
+    fixed_features=False, seed=0, **kwargs
+):
+    '''https://github.com/ArthurLeoM/FGWMixup/blob/main/src/FGW_barycenter.py'''
+
+    if loss_fun not in ('square_loss', 'kl_loss'):
+        raise ValueError(f"Unknown `loss_fun='{loss_fun}'`. Use one of: {'square_loss', 'kl_loss'}.")
+
+    S = Ys.shape[0]
+    if lambdas is None:
+        lambdas = torch.full((S,), 1.0 / S).to(Ys)
+
+    if p is None:
+        p = torch.full((N,), 1.0 / N).to(Ys)
+    
+    if ps is None:
+        ps = torch.full((S, N), 1.0 / N).to(Ys)
+
+    d = Ys.shape[-1]  # dimension on the node features
+
+    # Initialization of C : random euclidean distance matrix (if not provided by user)
+    if fixed_structure:
+        if init_C is None:
+            raise ValueError('If C is fixed it must be initialized')
+        else:
+            C = init_C
+    else:
+        if init_C is None:
+            torch.manual_seed(seed)
+            xalea = torch.randn(N, 2).to(Cs)
+            C = dist(xalea, xalea)
+        else:
+            C = init_C
+
+    # Initialization of Y
+    if fixed_features:
+        if init_Y is None:
+            raise ValueError('If Y is fixed it must be initialized')
+        else:
+            Y = init_Y
+    else:
+        if init_Y is None:
+            Y = torch.zeros((N, d)).to(ps[0])
+
+        else:
+            Y = init_Y
+
+    # Ms = [dist(Y, Ys[s]) for s in range(len(Ys))]
+    Ms = torch.vmap(lambda y: dist(Y, y))(Ys)
+
+    cpt = 0
+    inner_log = False
+    err_feature = 1e15
+    err_structure = 1e15
+    err_rel_loss = 0.
+
+    if log:
+        log_ = {}
+        log_['err_feature'] = []
+        log_['err_structure'] = []
+        log_['Ts_iter'] = []
+
+    while((err_feature > tol or err_structure > tol) and cpt < max_iter):
+        Cprev = C
+        Yprev = Y
+
+        T = batch_fgw_barycenters_BAPG(Ms, C, Cs, p, ps, alpha=alpha, epoch=100, eps=1e-5, rho=rho)
+
+        if not fixed_features:
+            Ys_temp = [y.T for y in Ys]
+            Y = update_feature_matrix(lambdas, Ys_temp, T, p).T
+            Ms = torch.vmap(lambda y: dist(Y, y))(Ys)
+
+        if not fixed_structure:
+            if loss_fun == 'square_loss':
+                C = update_square_loss(p, lambdas, T, Cs)
+
+            elif loss_fun == 'kl_loss':
+                C = update_kl_loss(p, lambdas, T, Cs)
+
+        # update convergence criterion
+        err_feature, err_structure = 0., 0.
+        if not fixed_features:
+            err_feature = torch.norm(Y - Yprev)
+        if not fixed_structure:
+            err_structure = torch.norm(C - Cprev)
+        if log:
+            log_['err_feature'].append(err_feature)
+            log_['err_structure'].append(err_structure)
+            log_['Ts_iter'].append(T)
+
+        if verbose:
+            if cpt % 200 == 0:
+                print('{:5s}|{:12s}'.format(
+                    'It.', 'Err') + '\n' + '-' * 19)
+            print('{:5d}|{:8e}|'.format(cpt, err_structure))
+            print('{:5d}|{:8e}|'.format(cpt, err_feature))
+
+        cpt += 1
+
+    if log:
+        log_['T'] = T
+        log_['p'] = p
+        log_['Ms'] = Ms
+
+        return Y, C, log_
+    else:
+        return Y, C

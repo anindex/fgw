@@ -4,7 +4,7 @@ Debug the log of input/output fgw_barycenter to find out the mapping graph nodes
 import torch
 import sys
 sys.path.append(".")
-from fgw.barycenter import fgw_barycenters, fgw_barycenters_BAPG
+from fgw.barycenter import fgw_barycenters, fgw_barycenters_BAPG, batch_fgw_barycenters_BAPG
 import networkx
 import numpy as np
 import matplotlib.pyplot as plt
@@ -83,9 +83,9 @@ Ys = debug_dict["Ys"]
 Cs = debug_dict["Cs"]
 ps = debug_dict["ps"]
 
-F_bary, C_bary, log = fgw_barycenters(N=debug_dict['N'], Ys=Ys, Cs=Cs, ps=ps, lambdas=debug_dict["lambdas"], warmstartT=True, symmetric=False, method='sinkhorn_log',
-                                alpha=0.5, solver='PGD', fixed_structure=True, fixed_features=False, epsilon=0.025, p=None, loss_fun='square_loss', max_iter=50, tol=1e-6,
-                                numItermax=30, stopThr=5e-3, verbose=True, log=True, init_C=Cs[0], init_X=None, random_state=None)
+# F_bary, C_bary, log = fgw_barycenters(N=debug_dict['N'], Ys=Ys, Cs=Cs, ps=ps, lambdas=debug_dict["lambdas"], warmstartT=True, symmetric=False, method='sinkhorn_log',
+#                                 alpha=0.5, solver='PGD', fixed_structure=True, fixed_features=False, epsilon=0.025, p=None, loss_fun='square_loss', max_iter=50, tol=1e-6,
+#                                 numItermax=30, stopThr=5e-3, verbose=True, log=True, init_C=Cs[0], init_X=None, random_state=None)
 
 # F_bary, C_bary, log = ot.gromov.fgw_barycenters(N=debug_dict["N"], Ys=debug_dict["Ys"], Cs=debug_dict["Cs"], ps=debug_dict["ps"], lambdas=debug_dict["lambdas"], warmstartT=True, symmetric=True,
 #                                 alpha=0.5, fixed_structure=True, fixed_features=False, p=None, loss_fun='square_loss', max_iter=20, tol=1e-3,
@@ -94,6 +94,11 @@ F_bary, C_bary, log = fgw_barycenters(N=debug_dict['N'], Ys=Ys, Cs=Cs, ps=ps, la
 # F_bary, C_bary, log = fgw_barycenters_BAPG(N=debug_dict['N'], Ys=Ys, Cs=Cs, ps=ps, lambdas=debug_dict["lambdas"], warmstartT=True, 
 #                                         alpha=0.5, fixed_structure=False, fixed_features=False, epsilon=0.001, p=None, loss_fun='kl_loss', max_iter=50, tol=1e-5, rho=5,
 #                                         verbose=True, log=True, init_C=Cs[0], init_X=None, random_state=None)
+
+F_bary, C_bary, log = batch_fgw_barycenters_BAPG(N=debug_dict['N'], Ys=Ys, Cs=Cs, ps=ps, lambdas=debug_dict["lambdas"], warmstartT=True, 
+                                        alpha=0.5, fixed_structure=False, fixed_features=False, epsilon=0.001, p=None, loss_fun='kl_loss', max_iter=50, tol=1e-5, rho=5,
+                                        verbose=True, log=True, init_C=Cs[0], init_X=None, random_state=None)
+
 
 # C_bary = C_bary.cpu().numpy()
 # G_bary = networkx.Graph(C_bary)
@@ -106,6 +111,7 @@ T = [t.cpu().numpy() for t in log["T"]]
 # visualize the mapping
 # pos1, pos2 = draw_transp_colored_GW(G, Cs, G_bary, C_bary, ps, p_bary, T[0], node_size=50)
 # plt.show()
+print(F_bary.shape)
 
 # visualize 5 couplings
 fig, axes = plt.subplots(figsize=(20, 10), nrows=1, ncols=5)
