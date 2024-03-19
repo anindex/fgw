@@ -1,7 +1,7 @@
 import torch
 
 from .bregman import fgw
-from .utils import dist, update_feature_matrix, update_square_loss, update_kl_loss
+from .utils import dist, update_feature_matrix, update_square_loss, update_kl_loss, batch_update_feature_matrix, batch_update_square_loss, batch_update_kl_loss
 
 
 def fgw_barycenters(
@@ -318,6 +318,8 @@ def batch_fused_ACC_torch(M, A, B, a=None, b=None, X=None, alpha=0, epoch=200, e
         a = torch.full((batch_size, a_size), 1.0 / a_size).to(A)
     else:
         a = a.to(A)
+        if a.ndim == 1:
+            a = a[None, :].repeat(batch_size, 1)
 
     if b is None:
         b = torch.full((batch_size, b_size), 1.0 / b_size).to(B)
@@ -334,12 +336,12 @@ def batch_fused_ACC_torch(M, A, B, a=None, b=None, X=None, alpha=0, epoch=200, e
         grad = 4 * alpha * torch.einsum('ij,bjk->bik', A, torch.einsum('bij,bjk->bik', X, B)) - (1 - alpha) * M
         X = torch.exp(grad / rho) * X
         # X = X * (a / (X @  torch.ones_like(b)))
-        X = X * (a / X.sum(dim=2, keepdim=True))
+        X = X * (a / X.sum(dim=2))[:, :, None]
         # grad = 4 * alpha * A @ X @ B - (1 - alpha) * M
         grad = 4 * alpha * torch.einsum('ij,bjk->bik', A, torch.einsum('bij,bjk->bik', X, B)) - (1 - alpha) * M
         X = torch.exp(grad / rho) * X
         # X = X * (b.T / (X.T @ torch.ones_like(a)).T)
-        X = X * (b / X.sum(dim=1, keepdim=True))
+        X = X * (b / X.sum(dim=1))[:, None, :]
         if ii > 0 and ii % 10 == 0:
             # objective = torch.trace(((1 - alpha) * M - 2 * alpha * A @ X @ B) @ X.T)
             objective = torch.einsum('bij,bjk->bik', (1 - alpha) * M - 2 * alpha * torch.einsum('ij,bjk->bik', A, torch.einsum('bij,bjk->bik', X, B)), X)
@@ -420,19 +422,18 @@ def batch_fgw_barycenters_BAPG(
         Cprev = C
         Yprev = Y
 
-        T = batch_fgw_barycenters_BAPG(Ms, C, Cs, p, ps, alpha=alpha, epoch=100, eps=1e-5, rho=rho)
+        T = batch_fused_ACC_torch(Ms, C, Cs, p, ps, alpha=alpha, epoch=100, eps=1e-5, rho=rho)
 
         if not fixed_features:
-            Ys_temp = [y.T for y in Ys]
-            Y = update_feature_matrix(lambdas, Ys_temp, T, p).T
+            Y = batch_update_feature_matrix(lambdas, Ys, T, p)
             Ms = torch.vmap(lambda y: dist(Y, y))(Ys)
 
         if not fixed_structure:
             if loss_fun == 'square_loss':
-                C = update_square_loss(p, lambdas, T, Cs)
+                C = batch_update_square_loss(p, lambdas, T, Cs)
 
             elif loss_fun == 'kl_loss':
-                C = update_kl_loss(p, lambdas, T, Cs)
+                C = batch_update_kl_loss(p, lambdas, T, Cs)
 
         # update convergence criterion
         err_feature, err_structure = 0., 0.

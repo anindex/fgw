@@ -61,10 +61,17 @@ def gwggrad(constC, hC1, hC2, T):
 def update_square_loss(p, lambdas, T, Cs):
 
     # Correct order mistake in Equation 14 in [12]
-    # tmpsum = sum([
-    #     lambdas[s] * T[s] @ Cs[s] @ T[s].T for s in range(len(T))
-    # ])
+    tmpsum = sum([
+        lambdas[s] * T[s] @ Cs[s] @ T[s].T for s in range(len(T))
+    ])
 
+    ppt = torch.outer(p, p)
+    return tmpsum / ppt
+
+
+def batch_update_square_loss(p, lambdas, T, Cs):
+
+    # Correct order mistake in Equation 14 in [12]
     tmpsum = torch.einsum('sij,sjk->sik', T, Cs)
     tmpsum = torch.einsum('sij,sjk->sik', tmpsum, T.transpose(1, 2))
     tmpsum = (lambdas[:, None, None] * tmpsum).sum(dim=0)
@@ -76,10 +83,17 @@ def update_square_loss(p, lambdas, T, Cs):
 def update_kl_loss(p, lambdas, T, Cs):
 
     # Correct order mistake in Equation 15 in [12]
-    # tmpsum = sum([
-    #     lambdas[s] * (T[s] @ torch.log(torch.clamp(Cs[s], min=1e-15)) @ T[s].T) for s in range(len(T))
-    # ])
+    tmpsum = sum([
+        lambdas[s] * (T[s] @ torch.log(torch.clamp(Cs[s], min=1e-15)) @ T[s].T) for s in range(len(T))
+    ])
 
+    ppt = torch.outer(p, p)
+    return torch.exp(tmpsum / ppt)
+
+
+def batch_update_kl_loss(p, lambdas, T, Cs):
+
+    # Correct order mistake in Equation 15 in [12]
     tmpsum = torch.einsum('sij,sjk->sik', T, torch.log(torch.clamp(Cs, min=1e-15)))
     tmpsum = torch.einsum('sij,sjk->sik', tmpsum, T.transpose(1, 2))
     tmpsum = (lambdas[:, None, None] * tmpsum).sum(dim=0)
@@ -90,13 +104,19 @@ def update_kl_loss(p, lambdas, T, Cs):
 
 def update_feature_matrix(lambdas, Ys, Ts, p):
 
-    # tmpsum = sum([
-    #     lambdas[s] * (Ys[s] @ Ts[s].T) * p[None, :]
-    #     for s in range(len(Ts))
-    # ])
+    p = 1. / p
 
-    tmpsum = lambdas[:, None, None] * torch.einsum('sij,sjk->sik', Ys, Ts)
-    tmpsum = tmpsum.sum(dim=0) / p[None, :]
+    tmpsum = sum([
+        lambdas[s] * (Ys[s] @ Ts[s].T) * p[None, :]
+        for s in range(len(Ts))
+    ])
+
+    return tmpsum
+
+
+def batch_update_feature_matrix(lambdas, Ys, Ts, p):
+    tmpsum = lambdas[:, None, None] * torch.einsum('sij,sjk->sik', Ts, Ys)
+    tmpsum = tmpsum.sum(dim=0) / p[:, None]
 
     return tmpsum
 

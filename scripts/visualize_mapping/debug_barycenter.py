@@ -82,6 +82,9 @@ debug_dict = torch.load("./data/cfm_log.pt")
 Ys = debug_dict["Ys"]
 Cs = debug_dict["Cs"]
 ps = debug_dict["ps"]
+Ys = torch.stack(Ys)
+Cs = torch.stack(Cs)
+ps = torch.stack(ps)
 
 # F_bary, C_bary, log = fgw_barycenters(N=debug_dict['N'], Ys=Ys, Cs=Cs, ps=ps, lambdas=debug_dict["lambdas"], warmstartT=True, symmetric=False, method='sinkhorn_log',
 #                                 alpha=0.5, solver='PGD', fixed_structure=True, fixed_features=False, epsilon=0.025, p=None, loss_fun='square_loss', max_iter=50, tol=1e-6,
