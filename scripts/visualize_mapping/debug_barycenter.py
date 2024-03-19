@@ -94,29 +94,38 @@ Cs = Cs.repeat(6, 1, 1)
 ps = ps.repeat(6, 1)
 lambdas = lambdas.repeat(6)
 
-start = time.time()
-F_bary, C_bary, log = fgw_barycenters(N=N, Ys=Ys, Cs=Cs, ps=ps, lambdas=lambdas, warmstartT=True, symmetric=False, method='sinkhorn_log',
-                                alpha=0.5, solver='PGD', fixed_structure=False, fixed_features=False, epsilon=0.025, p=None, loss_fun='kl_loss', max_iter=50, tol=1e-5,
-                                numItermax=50, stopThr=5e-3, verbose=False, log=True, init_C=Cs[0], init_X=None, random_state=None)
-print("FGW Sinkhorn Time elapsed: ", time.time() - start)
+def mse(A, B):
+    return torch.mean((A - B) ** 2).item()
 
 start = time.time()
-F_bary, C_bary, log = ot.gromov.fgw_barycenters(N=N, Ys=Ys, Cs=Cs, ps=ps, lambdas=lambdas, warmstartT=True, symmetric=True,
+F_bary_ref, C_bary_ref, log = ot.gromov.fgw_barycenters(N=N, Ys=Ys, Cs=Cs, ps=ps, lambdas=lambdas, warmstartT=True, symmetric=True,
                                 alpha=0.5, fixed_structure=False, fixed_features=False, p=None, loss_fun='kl_loss', max_iter=50, tol=1e-5,
-                                verbose=False, log=True, init_C=debug_dict["Cs"][0], init_X=None, random_state=None)
+                                verbose=False, log=True, init_C=None, init_X=None, random_state=None)
 print("FGW CG Time elapsed: ", time.time() - start)
 
 start = time.time()
-F_bary, C_bary, log = fgw_barycenters_BAPG(N=N, Ys=Ys, Cs=Cs, ps=ps, lambdas=lambdas, warmstartT=True, 
-                                        alpha=0.5, fixed_structure=False, fixed_features=False, epsilon=0.025, p=None, loss_fun='kl_loss', max_iter=50, toly=2e-1, tolc=1e-5, rho=3,
-                                        verbose=False, log=True, init_C=Cs[0], init_X=None, random_state=None)
-print("FGW BAPG Time elapsed: ", time.time() - start)
+F_bary1, C_bary1, log = fgw_barycenters(N=N, Ys=Ys, Cs=Cs, ps=ps, lambdas=lambdas, warmstartT=True, symmetric=False, method='sinkhorn_log',
+                                alpha=0.5, solver='PGD', fixed_structure=False, fixed_features=False, epsilon=0.025, p=None, loss_fun='kl_loss', max_iter=50, tol=1e-5,
+                                numItermax=50, stopThr=5e-3, verbose=False, log=True, init_C=None, init_X=None, random_state=None)
+print("FGW Sinkhorn Time elapsed: ", time.time() - start)
+print("FGW Sinkhorn Feature matrix difference: ", mse(F_bary1, F_bary_ref))
+print("FGW Sinkhorn Structure matrix difference: ", mse(C_bary1, C_bary_ref))
 
 start = time.time()
-F_bary, C_bary, log = batch_fgw_barycenters_BAPG(N=N, Ys=Ys, Cs=Cs, ps=ps, lambdas=lambdas, warmstartT=True, 
-                                        alpha=0.5, fixed_structure=False, fixed_features=False, epsilon=0.025, p=None, loss_fun='kl_loss', max_iter=50, toly=2e-1, tolc=1e-5, rho=3,
-                                        verbose=False, log=True, init_C=Cs[0], init_X=None, random_state=None)
+F_bary2, C_bary2, log = fgw_barycenters_BAPG(N=N, Ys=Ys, Cs=Cs, ps=ps, lambdas=lambdas, warmstartT=True, 
+                                        alpha=0.5, fixed_structure=False, fixed_features=False, epsilon=0.025, p=None, loss_fun='kl_loss', max_iter=50, toly=1e-3, tolc=1e-6, rho=22,
+                                        verbose=False, log=True, init_C=None, init_X=None, random_state=None)
+print("FGW BAPG Time elapsed: ", time.time() - start)
+print("FGW BAPG Feature matrix difference: ", mse(F_bary2, F_bary_ref))
+print("FGW BAPG Structure matrix difference: ", mse(C_bary2, C_bary_ref))
+
+start = time.time()
+F_bary3, C_bary3, log = batch_fgw_barycenters_BAPG(N=N, Ys=Ys, Cs=Cs, ps=ps, lambdas=lambdas, warmstartT=True, 
+                                        alpha=0.5, fixed_structure=False, fixed_features=False, epsilon=0.025, p=None, loss_fun='kl_loss', max_iter=50, toly=1e-3, tolc=1e-6, rho=22,
+                                        verbose=False, log=True, init_C=None, init_X=None, random_state=None)
 print("FGW Batch BAPG Time elapsed: ", time.time() - start)
+print("FGW Batch BAPG Feature matrix difference: ", mse(F_bary3, F_bary_ref))
+print("FGW Batch BAPG Structure matrix difference: ", mse(C_bary3, C_bary_ref))
 
 # C_bary = C_bary.cpu().numpy()
 # G_bary = networkx.Graph(C_bary)
