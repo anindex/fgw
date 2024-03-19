@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import ot
 import pygmtools as pygm
+import time
 
 
 def draw_graph(G, C, Gweights=None,
@@ -79,33 +80,47 @@ debug_dict = torch.load("./data/cfm_log.pt")
 # Cs = [C[:max_node, :max_node] for C in debug_dict["Cs"]]
 # ps = [p[:max_node] for p in debug_dict["ps"]]
 # ps = [p / p.sum() for p in ps]
+N = debug_dict["N"]
 Ys = debug_dict["Ys"]
 Cs = debug_dict["Cs"]
 ps = debug_dict["ps"]
+lambdas = debug_dict["lambdas"]
 Ys = torch.stack(Ys)
 Cs = torch.stack(Cs)
 ps = torch.stack(ps)
 
-# F_bary, C_bary, log = fgw_barycenters(N=debug_dict['N'], Ys=Ys, Cs=Cs, ps=ps, lambdas=debug_dict["lambdas"], warmstartT=True, symmetric=False, method='sinkhorn_log',
-#                                 alpha=0.5, solver='PGD', fixed_structure=True, fixed_features=False, epsilon=0.025, p=None, loss_fun='square_loss', max_iter=50, tol=1e-6,
-#                                 numItermax=30, stopThr=5e-3, verbose=True, log=True, init_C=Cs[0], init_X=None, random_state=None)
+Ys = Ys.repeat(6, 1, 1)
+Cs = Cs.repeat(6, 1, 1)
+ps = ps.repeat(6, 1)
+lambdas = lambdas.repeat(6)
 
-# F_bary, C_bary, log = ot.gromov.fgw_barycenters(N=debug_dict["N"], Ys=debug_dict["Ys"], Cs=debug_dict["Cs"], ps=debug_dict["ps"], lambdas=debug_dict["lambdas"], warmstartT=True, symmetric=True,
-#                                 alpha=0.5, fixed_structure=True, fixed_features=False, p=None, loss_fun='square_loss', max_iter=20, tol=1e-3,
-#                                 verbose=True, log=True, init_C=debug_dict["Cs"][1], init_X=None, random_state=None)
+start = time.time()
+F_bary, C_bary, log = fgw_barycenters(N=N, Ys=Ys, Cs=Cs, ps=ps, lambdas=lambdas, warmstartT=True, symmetric=False, method='sinkhorn_log',
+                                alpha=0.5, solver='PGD', fixed_structure=False, fixed_features=False, epsilon=0.025, p=None, loss_fun='kl_loss', max_iter=50, tol=1e-5,
+                                numItermax=50, stopThr=5e-3, verbose=False, log=True, init_C=Cs[0], init_X=None, random_state=None)
+print("FGW Sinkhorn Time elapsed: ", time.time() - start)
 
-# F_bary, C_bary, log = fgw_barycenters_BAPG(N=debug_dict['N'], Ys=Ys, Cs=Cs, ps=ps, lambdas=debug_dict["lambdas"], warmstartT=True, 
-#                                         alpha=0.5, fixed_structure=False, fixed_features=False, epsilon=0.001, p=None, loss_fun='kl_loss', max_iter=50, tol=1e-5, rho=5,
-#                                         verbose=True, log=True, init_C=Cs[0], init_X=None, random_state=None)
+start = time.time()
+F_bary, C_bary, log = ot.gromov.fgw_barycenters(N=N, Ys=Ys, Cs=Cs, ps=ps, lambdas=lambdas, warmstartT=True, symmetric=True,
+                                alpha=0.5, fixed_structure=False, fixed_features=False, p=None, loss_fun='kl_loss', max_iter=50, tol=1e-5,
+                                verbose=False, log=True, init_C=debug_dict["Cs"][0], init_X=None, random_state=None)
+print("FGW CG Time elapsed: ", time.time() - start)
 
-F_bary, C_bary, log = batch_fgw_barycenters_BAPG(N=debug_dict['N'], Ys=Ys, Cs=Cs, ps=ps, lambdas=debug_dict["lambdas"], warmstartT=True, 
-                                        alpha=0.5, fixed_structure=False, fixed_features=False, epsilon=0.001, p=None, loss_fun='kl_loss', max_iter=50, tol=1e-5, rho=5,
-                                        verbose=True, log=True, init_C=Cs[0], init_X=None, random_state=None)
+start = time.time()
+F_bary, C_bary, log = fgw_barycenters_BAPG(N=N, Ys=Ys, Cs=Cs, ps=ps, lambdas=lambdas, warmstartT=True, 
+                                        alpha=0.5, fixed_structure=False, fixed_features=False, epsilon=0.025, p=None, loss_fun='kl_loss', max_iter=50, toly=2e-1, tolc=1e-5, rho=3,
+                                        verbose=False, log=True, init_C=Cs[0], init_X=None, random_state=None)
+print("FGW BAPG Time elapsed: ", time.time() - start)
 
+start = time.time()
+F_bary, C_bary, log = batch_fgw_barycenters_BAPG(N=N, Ys=Ys, Cs=Cs, ps=ps, lambdas=lambdas, warmstartT=True, 
+                                        alpha=0.5, fixed_structure=False, fixed_features=False, epsilon=0.025, p=None, loss_fun='kl_loss', max_iter=50, toly=2e-1, tolc=1e-5, rho=3,
+                                        verbose=False, log=True, init_C=Cs[0], init_X=None, random_state=None)
+print("FGW Batch BAPG Time elapsed: ", time.time() - start)
 
 # C_bary = C_bary.cpu().numpy()
 # G_bary = networkx.Graph(C_bary)
-T = [t.cpu().numpy() for t in log["T"]]
+# T = [t.cpu().numpy() for t in log["T"]]
 # p_bary = log["p"].cpu().numpy()
 # G = Gs[0]
 # Cs = debug_dict["Cs"][0].cpu().numpy()
@@ -114,20 +129,19 @@ T = [t.cpu().numpy() for t in log["T"]]
 # visualize the mapping
 # pos1, pos2 = draw_transp_colored_GW(G, Cs, G_bary, C_bary, ps, p_bary, T[0], node_size=50)
 # plt.show()
-print(F_bary.shape)
 
 # visualize 5 couplings
-fig, axes = plt.subplots(figsize=(20, 10), nrows=1, ncols=5)
-i = 0
-for ax in axes.flat:
-    # draw only max values
-    # T_max = np.zeros_like(T[i])
-    # T_max[np.arange(T[i].shape[0]), np.argmax(T[i], axis=1)] = 1
-    T_max = pygm.hungarian(T[i])
-    im = ax.imshow(T_max)
-    i += 1
-fig.subplots_adjust(right=0.8)
-cbar_ax = fig.add_axes([0.85, 0.15, 0.01, 0.7])
-fig.colorbar(im, cax=cbar_ax)
-plt.show()
+# fig, axes = plt.subplots(figsize=(20, 10), nrows=1, ncols=5)
+# i = 0
+# for ax in axes.flat:
+#     # draw only max values
+#     # T_max = np.zeros_like(T[i])
+#     # T_max[np.arange(T[i].shape[0]), np.argmax(T[i], axis=1)] = 1
+#     T_max = pygm.hungarian(T[i])
+#     im = ax.imshow(T_max)
+#     i += 1
+# fig.subplots_adjust(right=0.8)
+# cbar_ax = fig.add_axes([0.85, 0.15, 0.01, 0.7])
+# fig.colorbar(im, cax=cbar_ax)
+# plt.show()
 

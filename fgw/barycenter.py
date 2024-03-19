@@ -196,7 +196,7 @@ def fused_ACC_torch(M, A, B, a=None, b=None, X=None, alpha=0, epoch=200, eps=1e-
 
 def fgw_barycenters_BAPG(
     N, Ys, Cs, ps=None, p=None, lambdas=None, loss_fun='square_loss',
-    alpha=0.5, max_iter=100, tol=1e-9, rho=1., verbose=False,
+    alpha=0.5, max_iter=100, toly=1e-9, tolc=1e-9, rho=1., verbose=False,
     log=False, init_C=None, init_Y=None, fixed_structure=False,
     fixed_features=False, seed=0, **kwargs
 ):
@@ -255,7 +255,7 @@ def fgw_barycenters_BAPG(
         log_['err_structure'] = []
         log_['Ts_iter'] = []
 
-    while((err_feature > tol or err_structure > tol) and cpt < max_iter):
+    while((err_feature > toly or err_structure > tolc) and cpt < max_iter):
         Cprev = C
         Yprev = Y
 
@@ -355,7 +355,7 @@ def batch_fused_ACC_torch(M, A, B, a=None, b=None, X=None, alpha=0, epoch=200, e
 
 def batch_fgw_barycenters_BAPG(
     N, Ys, Cs, ps=None, p=None, lambdas=None, loss_fun='square_loss',
-    alpha=0.5, max_iter=100, tol=1e-9, rho=1., verbose=False,
+    alpha=0.5, max_iter=100, toly=1e-9, tolc=1e-9, rho=1., verbose=False,
     log=False, init_C=None, init_Y=None, fixed_structure=False,
     fixed_features=False, seed=0, **kwargs
 ):
@@ -418,7 +418,7 @@ def batch_fgw_barycenters_BAPG(
         log_['err_structure'] = []
         log_['Ts_iter'] = []
 
-    while((err_feature > tol or err_structure > tol) and cpt < max_iter):
+    while((err_feature > toly or err_structure > tolc) and cpt < max_iter):
         Cprev = C
         Yprev = Y
 
