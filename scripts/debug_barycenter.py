@@ -1,5 +1,5 @@
 import torch
-from fgw.barycenter import fgw_barycenters
+from fgw.barycenter import fgw_barycenters, fgw_barycenters_BAPG
 debug_dict = torch.load("./scripts/debug_barycenter.pt")
 print(debug_dict['N'])
 print(debug_dict['Ys'].min(), debug_dict['Ys'].max())
@@ -22,8 +22,13 @@ Cs = debug_dict['Cs']
 ps = debug_dict['ps']
 lambdas = debug_dict["lambdas"]
 
-F_bary, C_bary = fgw_barycenters(N=debug_dict["N"], Ys=Ys, Cs=Cs, ps=ps, lambdas=lambdas, warmstartT=True, symmetric=True, method='sinkhorn_log',
-                                 alpha=0.5, solver='PGD', fixed_structure=True, fixed_features=False, epsilon=0.15, p=None, loss_fun='square_loss', max_iter=30, tol=1e-2, 
-                                 numItermax=20, stopThr=1e-2, verbose=True, log=False, init_C=Cs[0], init_X=None, random_state=None)
+# F_bary, C_bary = fgw_barycenters(N=debug_dict["N"], Ys=Ys, Cs=Cs, ps=ps, lambdas=lambdas, warmstartT=True, symmetric=True, method='sinkhorn_log',
+#                                  alpha=0.5, solver='PGD', fixed_structure=True, fixed_features=False, epsilon=0.15, p=None, loss_fun='square_loss', max_iter=30, tol=1e-2, 
+#                                  numItermax=20, stopThr=1e-2, verbose=True, log=False, init_C=Cs[0], init_X=None, random_state=None)
+
+F_bary, C_bary = fgw_barycenters_BAPG(N=debug_dict["N"], Ys=Ys, Cs=Cs, ps=ps, lambdas=lambdas, warmstartT=True,
+                                      alpha=0.5, fixed_structure=True, fixed_features=False, epsilon=0.05, p=None, loss_fun='square_loss', max_iter=30, tol=1e-2, rho=1, init_C=Cs[0],
+                                      verbose=True
+                                      )
 
 print(F_bary.min(), F_bary.max())
