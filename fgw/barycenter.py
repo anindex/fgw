@@ -94,13 +94,14 @@ def fgw_barycenters(
             prev_loss = curr_loss
 
         # get transport plans
-        if warmstartT:
-            res = [fgw(Ms[s], C, Cs[s], p, ps[s], loss_fun, epsilon, symmetric, alpha,
-                       T[s], max_iter, 1e-4, solver=solver, verbose=False, log=inner_log, **kwargs) for s in range(S)]
+        with torch.no_grad():
+            if warmstartT:
+                res = [fgw(Ms[s], C, Cs[s], p, ps[s], loss_fun, epsilon, symmetric, alpha,
+                        T[s], max_iter, 1e-4, solver=solver, verbose=False, log=inner_log, **kwargs) for s in range(S)]
 
-        else:
-            res = [fgw(Ms[s], C, Cs[s], p, ps[s], loss_fun, epsilon, symmetric, alpha,
-                       None, max_iter, 1e-4, solver=solver, verbose=False, log=inner_log, **kwargs) for s in range(S)]
+            else:
+                res = [fgw(Ms[s], C, Cs[s], p, ps[s], loss_fun, epsilon, symmetric, alpha,
+                        None, max_iter, 1e-4, solver=solver, verbose=False, log=inner_log, **kwargs) for s in range(S)]
 
         if stop_criterion == 'barycenter':
             T = res
@@ -112,6 +113,7 @@ def fgw_barycenters(
         if not fixed_features:
             Ys_temp = [y.T for y in Ys]
             Y = update_feature_matrix(lambdas, Ys_temp, T, p).T
+            print("Y", Y.grad_fn)
             Ms = [dist(Y, Ys[s]) for s in range(len(Ys))]
 
         if not fixed_structure:
@@ -120,6 +122,7 @@ def fgw_barycenters(
 
             elif loss_fun == 'kl_loss':
                 C = update_kl_loss(p, lambdas, T, Cs)
+        print("C", C.grad_fn)
 
         # update convergence criterion
         if stop_criterion == 'barycenter':
