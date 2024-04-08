@@ -113,7 +113,6 @@ def fgw_barycenters(
         if not fixed_features:
             Ys_temp = [y.T for y in Ys]
             Y = update_feature_matrix(lambdas, Ys_temp, T, p).T
-            print("Y", Y.grad_fn)
             Ms = [dist(Y, Ys[s]) for s in range(len(Ys))]
 
         if not fixed_structure:
@@ -122,7 +121,6 @@ def fgw_barycenters(
 
             elif loss_fun == 'kl_loss':
                 C = update_kl_loss(p, lambdas, T, Cs)
-        print("C", C.grad_fn)
 
         # update convergence criterion
         if stop_criterion == 'barycenter':
@@ -425,7 +423,8 @@ def batch_fgw_barycenters_BAPG(
         Cprev = C
         Yprev = Y
 
-        T = batch_fused_ACC_torch(Ms, C, Cs, p, ps, alpha=alpha, epoch=100, eps=1e-5, rho=rho)
+        with torch.no_grad():
+            T = batch_fused_ACC_torch(Ms, C, Cs, p, ps, alpha=alpha, epoch=100, eps=1e-5, rho=rho)
 
         if not fixed_features:
             Y = batch_update_feature_matrix(lambdas, Ys, T, p)
