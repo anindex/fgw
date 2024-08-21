@@ -1,7 +1,7 @@
 import torch
 
 from .bregman import fgw
-from .utils import dist, update_feature_matrix, update_square_loss, update_kl_loss, batch_update_feature_matrix, batch_update_square_loss, batch_update_kl_loss
+from .utils import dist, update_feature_matrix, update_square_loss, update_kl_loss, batch_update_feature_matrix, batch_update_square_loss, batch_update_kl_loss, Epsilon
 
 
 def fgw_barycenters(
@@ -424,6 +424,7 @@ def batch_fgw_barycenters_BAPG(
         Yprev = Y
 
         with torch.no_grad():
+            rho = rho.at(cpt) if isinstance(rho, Epsilon) else rho
             T = batch_fused_ACC_torch(Ms, C, Cs, p, ps, alpha=alpha, epoch=100, eps=1e-5, rho=rho)
 
         if not fixed_features:
